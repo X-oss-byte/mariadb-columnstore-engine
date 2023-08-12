@@ -7,16 +7,16 @@ from datetime import datetime
 from cmapi_server.controllers.dispatcher import _version
 
 config_filename = './cmapi_server/cmapi_server.conf'
- 
+
 url = f"https://localhost:8640/cmapi/{_version}/node/config"
 begin_url = f"https://localhost:8640/cmapi/{_version}/node/begin"
 config_path = './cmapi_server/test/Columnstore_apply_config.xml'
- 
+
 # create tmp dir
 tmp_prefix = '/tmp/mcs_config_test'
 tmp_path = Path(tmp_prefix)
 tmp_path.mkdir(parents = True, exist_ok = True)
-copyfile(config_path_old, tmp_prefix + '/Columnstore.xml')
+copyfile(config_path_old, f'{tmp_prefix}/Columnstore.xml')
 
 
 def get_current_key():

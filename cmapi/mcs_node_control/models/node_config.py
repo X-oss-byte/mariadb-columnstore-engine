@@ -73,8 +73,7 @@ class NodeConfig:
                 break
             if node.text != '0.0.0.0':
                 addrs.add(node.text)
-                if max_node < num:
-                    max_node = num
+                max_node = max(max_node, num)
             num += 1
 
         # NextNodeId can be derived from the max DBRM_worker entry with non-0
@@ -133,7 +132,7 @@ class NodeConfig:
             # as we add revisions, add add'l checks on rev_node.text here
 
     def write_config(self, tree, filename=DEFAULT_MCS_CONF_PATH):
-        tmp_filename = filename + ".cmapi.tmp"
+        tmp_filename = f"{filename}.cmapi.tmp"
         with open(tmp_filename, "w") as f:
             f.write(self.to_string(tree))
         replace(tmp_filename, filename)    # atomic replacement
@@ -268,10 +267,7 @@ class NodeConfig:
         active_nodes = [
             node.text for node in root.findall("./ActiveNodes/Node")
         ]
-        for node in active_nodes:
-            if node in my_names:
-                return True
-        return False
+        return any(node in my_names for node in active_nodes)
 
     def get_current_pm_num(self, root):
         # Find this node in the Module* tags, return the module number
@@ -361,11 +357,22 @@ class NodeConfig:
 
             if storage.lower() == 's3':
                 config_root = self.get_current_config_root()
-                if not config_root.find('./Installation/DBRootStorageType').text.lower() == "storagemanager":
+                if (
+                    config_root.find(
+                        './Installation/DBRootStorageType'
+                    ).text.lower()
+                    != "storagemanager"
+                ):
                     module_logger.error(f"{func_name} DBRootStorageType.lower() != storagemanager")
-                if not config_root.find('./StorageManager/Enabled').text.lower() == "y":
+                if (
+                    config_root.find('./StorageManager/Enabled').text.lower()
+                    != "y"
+                ):
                     module_logger.error(f"{func_name} StorageManager/Enabled.lower() != y")
-                if not config_root.find('./SystemConfig/DataFilePlugin').text == "libcloudio.so":
+                if (
+                    config_root.find('./SystemConfig/DataFilePlugin').text
+                    != "libcloudio.so"
+                ):
                     module_logger.error(f"{func_name} SystemConfig/DataFilePlugin != libcloudio.so")
 
                 return True
@@ -385,8 +392,7 @@ class NodeConfig:
             for fam in [socket.AF_INET, socket.AF_INET6]:
                 addrs = ni.addresses.get(fam)
                 if addrs is not None:
-                    for addr in addrs:
-                        yield(addr)
+                    yield from addrs
 
     def get_network_addresses_and_names(self):
         """Retrievs the list of the network addresses, hostnames, and aliases
@@ -406,8 +412,7 @@ class NodeConfig:
                         except:
                             continue
                         yield host
-                        for alias in aliases:
-                            yield alias
+                        yield from aliases
 
     def is_primary_node(self, root=None):
         """Checks if this node is the primary node.
@@ -435,9 +440,7 @@ class NodeConfig:
             root = self.get_current_config_root()
 
         master_address = self.get_dbrm_conn_info(root)['IPAddr']
-        if master_address in ['127.0.0.1', 'localhost', '::1']:
-            return True
-        return False
+        return master_address in ['127.0.0.1', 'localhost', '::1']
 
     def get_new_module_id(self, new_root=None):
         """Retrieves new module id.
@@ -524,8 +527,8 @@ the node.')
                 for subel in el:
                     module_ip_m = re.match(regex_string, subel.tag)
                     if module_ip_m is not None:
-                        id_m = re.search('[0-9]+', module_ip_m.group(0))
-                        module_id = id_m.group(0)
+                        id_m = re.search('[0-9]+', module_ip_m[0])
+                        module_id = id_m[0]
                         module_logger.debug(
                             f'{func_name} Module {module_id} '
                             f'network address {subel.text}'
@@ -569,6 +572,10 @@ has dbroot {subel.text}')
         smc_node = root.find("./SystemModuleConfig")
         mod_count = int(smc_node.find("./ModuleCount3").text)
         for i in range(1, mod_count+1):
-            for j in range(1, int(smc_node.find(f"./ModuleDBRootCount{i}-3").text) + 1):
-                dbroots.append(smc_node.find(f"./ModuleDBRootID{i}-{j}-3").text)
+            dbroots.extend(
+                smc_node.find(f"./ModuleDBRootID{i}-{j}-3").text
+                for j in range(
+                    1, int(smc_node.find(f"./ModuleDBRootCount{i}-3").text) + 1
+                )
+            )
         return dbroots

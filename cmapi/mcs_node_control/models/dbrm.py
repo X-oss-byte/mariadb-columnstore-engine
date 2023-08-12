@@ -56,9 +56,7 @@ class DBRM:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-        if exc_type:
-            return False
-        return True
+        return not exc_type
 
     def _send_command(self, command_name, command_value=None):
         if command_name not in DBRM_COMMAND_BYTES:
@@ -76,26 +74,24 @@ class DBRM:
         response_value_bytes = self.dbrm_socket.receive()
 
         if command_name == 'readonly':
-            reply = int.from_bytes(response_value_bytes, 'little')
-        else:
-            # get first byte, it's an error message
-            err = int.from_bytes(response_value_bytes[:1], 'little')
+            return int.from_bytes(response_value_bytes, 'little')
+        # get first byte, it's an error message
+        err = int.from_bytes(response_value_bytes[:1], 'little')
 
-            if err != 0:
-                module_logger.warning(
-                    f'DBRM._send_command: Command {command_name} '
-                    'returned error on server'
-                )
-                raise RuntimeError(
-                    f'Controller Node replied error with code {err} '
-                    f'for command {command_name}'
-                )
+        if err != 0:
+            module_logger.warning(
+                f'DBRM._send_command: Command {command_name} '
+                'returned error on server'
+            )
+            raise RuntimeError(
+                f'Controller Node replied error with code {err} '
+                f'for command {command_name}'
+            )
 
-            if len(response_value_bytes) < 2:
-                return None
+        if len(response_value_bytes) < 2:
+            return None
 
-            reply = int.from_bytes(response_value_bytes[1:], 'little')
-        return reply
+        return int.from_bytes(response_value_bytes[1:], 'little')
 
     def get_system_state(self):
         state = self._send_command('get_system_state')
@@ -145,9 +141,7 @@ class DBRM:
         :return: mode of this DBRM node
         :rtype: string
         """
-        if Process.check_process_alive('controllernode'):
-            return 'master'
-        return 'slave'
+        return 'master' if Process.check_process_alive('controllernode') else 'slave'
 
     def _get_cluster_mode(self):
         """Get DBRM cluster mode for internal usage.
@@ -174,10 +168,7 @@ class DBRM:
         :rtype: str
         """
         real_mode = self._get_cluster_mode()
-        if self.get_dbrm_status() == 'master':
-            return real_mode
-        else:
-            return 'readonly'
+        return real_mode if self.get_dbrm_status() == 'master' else 'readonly'
 
     def set_cluster_mode(self, mode):
         """Set cluster mode requested

@@ -68,7 +68,7 @@ class FailoverAgent(AgentBase):
     # the 'hack' parameter is a placeholder.  When run by agent_comm, this function gets a first parameter
     # of ().  When that is the input_config_filename, that's bad.  Need to fix.
     def movePrimaryNode(self, hack, input_config_filename = None, output_config_filename = None, test_mode = False):
-        logger.info(f"FA.movePrimaryNode(): moving primary node functionality")
+        logger.info("FA.movePrimaryNode(): moving primary node functionality")
 
         # to save a little typing in testing
         kwargs = {

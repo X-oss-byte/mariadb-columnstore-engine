@@ -71,15 +71,14 @@ class TestEMEndpoints(unittest.TestCase):
             ret = subprocess.run(
                 ["smcat", element_current_filename], stdout=subprocess.PIPE
             )
-            result = ret.stdout
+            return ret.stdout
         else:
             element_current_name = Path(MCS_BRM_CURRENT_PATH)
             element_current_filename = element_current_name.read_text().rstrip()
             element_current_file = Path(
                 f'{MCS_EM_PATH}/{element_current_filename}_{element}'
             )
-            result = element_current_file.read_bytes()
-        return result
+            return element_current_file.read_bytes()
 
     def test_em(self):
         app = cherrypy.tree.mount(root=None,

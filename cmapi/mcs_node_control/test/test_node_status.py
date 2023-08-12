@@ -31,7 +31,7 @@ class NodeStatusTest(unittest.TestCase):
             dbroot_ids = [1, 2, 3]
             path = '/tmp/dbroots/'
             for e in dbroot_ids:
-                p = Path(path + 'data' + str(e))
+                p = Path(f'{path}data{str(e)}')
                 p.mkdir(parents = True, exist_ok = True)
             for e in node_status.get_dbroots(path=path):
                 self.assertEqual(e in dbroot_ids, True)

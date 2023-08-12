@@ -81,7 +81,7 @@ class ContainerDispatcher(BaseDispatcher):
                 continue
 
             lib_path = p_match.groups()[-1]
-            lib_name = p_match.group(1)
+            lib_name = p_match[1]
             if 'libjemalloc' in lib_name:
                 # use the first entry
                 # TODO: do we need path or name here?
@@ -240,12 +240,7 @@ class ContainerDispatcher(BaseDispatcher):
                 logger.debug('Successfully cleared SHM.')
 
         service_proc.terminate()
-        # timeout got from old container.sh
-        # TODO: this is still not enough for controllernode process
-        #       it should be always stop by SIGKILL, need to investigate.
-        timeout = 3
-        if service == 'StorageManager':
-            timeout = 300  # 5 minutes
+        timeout = 300 if service == 'StorageManager' else 3
         logger.debug(f'Waiting to gracefully stop "{service}".')
         # This function will return as soon as all processes terminate
         # or when timeout (seconds) occurs.

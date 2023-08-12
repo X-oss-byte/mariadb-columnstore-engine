@@ -5,11 +5,11 @@ import struct
 import sys
 
 _config = config.Config("failover/test/config-test.xml")
-print("got desired_nodes = {}".format(_config.getDesiredNodes()))
-print("got active_nodes = {}".format(_config.getActiveNodes()))
-print("got inacive_nodes = {}".format(_config.getInactiveNodes()))
-print("got all nodes = {}".format(_config.getAllNodes()))
-print("got primarynode = {}".format(_config.getPrimaryNode()))
+print(f"got desired_nodes = {_config.getDesiredNodes()}")
+print(f"got active_nodes = {_config.getActiveNodes()}")
+print(f"got inacive_nodes = {_config.getInactiveNodes()}")
+print(f"got all nodes = {_config.getAllNodes()}")
+print(f"got primarynode = {_config.getPrimaryNode()}")
 print()
 
 from ..heartbeater import HeartBeater
@@ -47,7 +47,7 @@ hbh.setCurrentTick(10)
 hbh.gotHeartbeat("node1", 9)
 hbh.gotHeartbeat("node1", 2)
 pongs = hbh.getNodeHistory("node1", 20)
-print("Got pongs: {}".format(pongs))
+print(f"Got pongs: {pongs}")
 
 print('''
  This is currently a 'manual' test, meaning the user should watch for the expected output

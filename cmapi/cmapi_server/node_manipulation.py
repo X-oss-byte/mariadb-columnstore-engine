@@ -301,11 +301,7 @@ def _move_primary_node(root):
     new_primary = find_dbroot1(root)
     logging.info(f"_move_primary_node(): dbroot 1 is assigned to {new_primary}")
     active_nodes = root.findall("./ActiveNodes/Node")
-    found = False
-    for node in active_nodes:
-        if node.text in new_primary:
-            found = True
-            break
+    found = any(node.text in new_primary for node in active_nodes)
     if not found:
         raise NodeNotFoundException(f"{new_primary} is not in the list of active nodes")
 
@@ -329,10 +325,7 @@ def _add_active_node(root, node):
     '''
 
     nodes = root.findall("./DesiredNodes/Node")
-    found = False
-    for n in nodes:
-        if n.text == node:
-            found = True
+    found = any(n.text == node for n in nodes)
     if not found:
         desired_nodes = root.find("./DesiredNodes")
         etree.SubElement(desired_nodes, "Node").text = node
@@ -341,11 +334,7 @@ def _add_active_node(root, node):
 
     active_nodes = root.find("./ActiveNodes")
     nodes = active_nodes.findall("./Node")
-    found = False
-    for n in nodes:
-        if n.text == node:
-            found = True
-            break
+    found = any(n.text == node for n in nodes)
     if not found:
         etree.SubElement(active_nodes, "Node").text = node
 
@@ -389,8 +378,7 @@ def _add_dbroot(root, host) -> int:
     """
     sysconf_node = root.find('./SystemConfig')
     dbroot_count_node = sysconf_node.find('./DBRootCount')
-    dbroot_count = int(dbroot_count_node.text)
-    dbroot_count += 1
+    dbroot_count = int(dbroot_count_node.text) + 1
     dbroot_count_node.text = str(dbroot_count)
 
     next_dbroot_node = root.find('./NextDBRootId')
@@ -430,7 +418,7 @@ def _add_dbroot(root, host) -> int:
     for i in range(1, mod_count+1):
         ip_addr = smc_node.find(f'./ModuleIPAddr{i}-1-3').text
         hostname = smc_node.find(f'./ModuleHostName{i}-1-3').text
-        if host == ip_addr or host == hostname:
+        if host in [ip_addr, hostname]:
             node_id = i
             break
     if node_id == 0:
@@ -439,8 +427,7 @@ def _add_dbroot(root, host) -> int:
         )
 
     dbroot_count_node = smc_node.find(f'./ModuleDBRootCount{node_id}-3')
-    dbroot_count = int(dbroot_count_node.text)
-    dbroot_count += 1
+    dbroot_count = int(dbroot_count_node.text) + 1
     etree.SubElement(
         smc_node, f'ModuleDBRootID{node_id}-{dbroot_count}-3'
     ).text = str(current_dbroot_id)
@@ -474,10 +461,7 @@ def is_master():
     if ret.returncode == 0:
         response = ret.stdout.decode("utf-8").strip()
         # Primary will have no slave_threads
-        if response == '0':
-            return True
-        else:
-            return False
+        return response == '0'
     return None
 
 
@@ -506,10 +490,8 @@ def unassign_dbroot1(root):
         smc_node.remove(doomed_node)
     # create the new dbroot entries
     dbroot_count_node.text = str(len(dbroot_list))
-    i = 1
-    for dbroot in dbroot_list:
+    for i, dbroot in enumerate(dbroot_list, start=1):
         etree.SubElement(smc_node, f"ModuleDBRootID{owner_id}-{i}-3").text = dbroot
-        i += 1
 
 
 def _rebalance_dbroots(root, test_mode=False):
@@ -618,12 +600,11 @@ def _rebalance_dbroots(root, test_mode=False):
                         retry = False
 
                 if not found_master:
-                    if not retry:
-                        logging.info("There was an error retrieving replication master")
-                        break
-                    else:
+                    if retry:
                         continue
 
+                    logging.info("There was an error retrieving replication master")
+                    break
                 # assign dbroot 1 to this node, put at the front of the list
                 current_mapping[node_num].insert(0, 1)
                 unassigned_dbroots.remove(1)
@@ -727,7 +708,7 @@ def _remove_Module_entries(root, node):
     for num in range(1, current_module_count + 1):
         m_ip_node = smc_node.find(f"./ModuleIPAddr{num}-1-3")
         m_name_node = smc_node.find(f"./ModuleHostName{num}-1-3")
-        if node == m_ip_node.text or node == m_name_node.text:
+        if node in [m_ip_node.text, m_name_node.text]:
             node_module_id = num
             break
     if node_module_id == 0:
@@ -748,7 +729,7 @@ def _remove_Module_entries(root, node):
             dbroots.append(dbr_node.text)
             smc_node.remove(dbr_node)
 
-        if node != m_ip_node.text and node != m_name_node.text:
+        if node not in [m_ip_node.text, m_name_node.text]:
             new_module_info.append((m_ip_node.text, m_name_node.text, dbroots))
 
         smc_node.remove(m_ip_node)
@@ -826,13 +807,12 @@ def _remove_DBRM_Worker(root, node):
     workers = []
     while True:
         w_node = root.find(f"./DBRM_Worker{num}")
-        if w_node is not None:
-            addr = w_node.find("./IPAddr").text
-            if addr != "0.0.0.0" and addr != node:
-                workers.append(addr)
-            root.remove(w_node)
-        else:
+        if w_node is None:
             break
+        addr = w_node.find("./IPAddr").text
+        if addr not in ["0.0.0.0", node]:
+            workers.append(addr)
+        root.remove(w_node)
         num += 1
 
     for num in range(len(workers)):
@@ -849,13 +829,12 @@ def _remove_from_ExeMgrs(root, node):
     # TODO: use loop by nodes count instead of "while True"
     while True:
         em_node = root.find(f"./ExeMgr{num}")
-        if em_node is not None:
-            addr = em_node.find("./IPAddr").text
-            if addr != "0.0.0.0" and addr != node:
-                ems.append(addr)
-            root.remove(em_node)
-        else:
+        if em_node is None:
             break
+        addr = em_node.find("./IPAddr").text
+        if addr not in ["0.0.0.0", node]:
+            ems.append(addr)
+        root.remove(em_node)
         num += 1
 
     for num in range(len(ems)):
@@ -924,11 +903,7 @@ def _add_Module_entries(root, node):
     # This will work best with a simple network configuration where there is 1 IP addr
     # and 1 host name for a node.
     ip4 = socket.gethostbyname(node)
-    if ip4 == node:   # node is an IP addr
-        node_name = socket.gethostbyaddr(node)[0]
-    else:
-        node_name = node   # node is a hostname
-
+    node_name = socket.gethostbyaddr(node)[0] if ip4 == node else node
     logging.info(f"_add_Module_entries(): using ip address {ip4} and hostname {node_name}")
 
     smc_node = root.find("./SystemModuleConfig")
@@ -950,7 +925,7 @@ def _add_Module_entries(root, node):
                 logging.info(f"_add_Module_entries(): hostname doesn't match, updating address to {new_ip_addr}")
                 smc_node.find(f"ModuleHostName{i}-1-3").text = new_ip_addr
             else:
-                logging.info(f"_add_Module_entries(): no update is necessary")
+                logging.info("_add_Module_entries(): no update is necessary")
                 return
 
         # if we find a matching hostname, update the ip addr
@@ -1088,11 +1063,7 @@ def _replace_localhost(root, node):
     # use sockaddr to retrieve ip, sockaddr = (address, port) for AF_INET
     ipaddr = socket.getaddrinfo(node, 8640, family=socket.AF_INET)[0][-1][0]
     # signifies that node is an IP addr already
-    if ipaddr == node:
-        # use the primary hostname if given an ip addr
-        hostname = socket.gethostbyaddr(ipaddr)[0]
-    else:
-        hostname = node   # use whatever name they gave us
+    hostname = socket.gethostbyaddr(ipaddr)[0] if ipaddr == node else node
     logging.info(
         f'add_node(): replacing 127.0.0.1/localhost with {ipaddr}/{hostname} '
         f'as this node\'s name. Be sure {hostname} resolves to {ipaddr} on '

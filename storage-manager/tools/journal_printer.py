@@ -26,7 +26,7 @@ def print_header(f):
     header = json.loads(s)
     print("Header:")
     for (k, v) in header.items():
-        print("  {} : {}".format(k, int(v)))
+        print(f"  {k} : {int(v)}")
 
 def print_journal_entries(f):
     i = 1
@@ -34,7 +34,7 @@ def print_journal_entries(f):
     while pos < journal_size:
         b = f.read(16)
         (offset, length) = struct.unpack("QQ", b)
-        print("{}:  offset = {}, length = {}".format(i, offset, length))
+        print(f"{i}:  offset = {offset}, length = {length}")
         pos = f.seek(length, io.SEEK_CUR)
         i = i + 1
 

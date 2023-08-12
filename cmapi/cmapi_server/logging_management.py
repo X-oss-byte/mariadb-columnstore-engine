@@ -31,10 +31,7 @@ def custom_cherrypy_error(
     ..Note:
         All informatio
     """
-    exc_info = None
-    if traceback:
-        exc_info = _cperror._exc_info()
-
+    exc_info = _cperror._exc_info() if traceback else None
     self.error_log.log(severity, ' '.join((context, msg)), exc_info=exc_info)
 
 

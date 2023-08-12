@@ -137,11 +137,10 @@ class NodeManipTester(BaseNodeManipTestCase):
         )
         self.assertEqual(dbroot_count1 + dbroot_count2, 3)
 
-        unique_dbroots = set()
-        for i in range(1, dbroot_count1 + 1):
-            unique_dbroots.add(int(
-                root.find(f'./SystemModuleConfig/ModuleDBRootID1-{i}-3').text)
-            )
+        unique_dbroots = {
+            int(root.find(f'./SystemModuleConfig/ModuleDBRootID1-{i}-3').text)
+            for i in range(1, dbroot_count1 + 1)
+        }
         for i in range(1, dbroot_count2 + 1):
             unique_dbroots.add(int(
                 root.find(f'./SystemModuleConfig/ModuleDBRootID2-{i}-3').text)

@@ -69,10 +69,7 @@ def add(
     )
 ):
     """Add nodes to the Columnstore cluster."""
-    result = []
-    for node in nodes:
-        result.append(ClusterHandler.add_node(node, logger=logger))
-    return result
+    return [ClusterHandler.add_node(node, logger=logger) for node in nodes]
 
 
 @node_app.command()
@@ -87,10 +84,7 @@ def remove(nodes: Optional[List[str]] = typer.Option(
     )
 ):
     """Remove nodes from the Columnstore cluster."""
-    result = []
-    for node in nodes:
-        result.append(ClusterHandler.remove_node(node, logger=logger))
-    return result
+    return [ClusterHandler.remove_node(node, logger=logger) for node in nodes]
 
 
 @set_app.command()
@@ -105,11 +99,12 @@ def mode(cluster_mode: str = typer.Option(
     )
 ):
     """Set Columnstore cluster mode."""
-    if cluster_mode not in ('readonly', 'readwrite'):
+    if cluster_mode in {'readonly', 'readwrite'}:
+        return ClusterHandler.set_mode(cluster_mode, logger=logger)
+    else:
         raise typer.BadParameter(
             '"readonly" or "readwrite" are the only acceptable modes now.'
         )
-    return ClusterHandler.set_mode(cluster_mode, logger=logger)
 
 
 @set_app.command()

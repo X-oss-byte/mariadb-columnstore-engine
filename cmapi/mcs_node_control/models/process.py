@@ -29,8 +29,7 @@ def get_host_uptime():
 class Process():
     """An interface to retrieve data from proc."""
     def get_proc_iterator(self):
-        for pid in self.pids():
-            yield pid
+        yield from self.pids()
 
 
     def pids(self):
