@@ -43,9 +43,5 @@ def do_query(query):
     client_socket.close()
         
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        query = raw_input ( "QFE-cli > " )
-    else:
-        query = sys.argv[1]
-        
+    query = raw_input ( "QFE-cli > " ) if len(sys.argv) < 2 else sys.argv[1]
     sys.exit(do_query(query))

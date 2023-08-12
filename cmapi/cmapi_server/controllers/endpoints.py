@@ -206,7 +206,7 @@ class StatusController:
             'services': MCSProcessManager.get_running_mcs_procs(),
         }
 
-        module_logger.debug(f'{func_name} returns {str(status_response)}')
+        module_logger.debug(f'{func_name} returns {status_response}')
         return status_response
 
     @cherrypy.tools.timeit()
@@ -224,7 +224,7 @@ class StatusController:
         #       to do so loadbrm and save brm have to be fixed
         #       + check other places
         get_master_response = {'is_primary': str(NodeConfig().is_primary_node())}
-        module_logger.debug(f'{func_name} returns {str(get_master_response)}')
+        module_logger.debug(f'{func_name} returns {get_master_response}')
 
         return get_master_response
 
@@ -242,7 +242,7 @@ class StatusController:
             raise_422_error(
                 module_logger, func_name, cej_error.message
             )
-        module_logger.debug(f'{func_name} returns {str(get_master_response)}')
+        module_logger.debug(f'{func_name} returns {get_master_response}')
 
         return get_master_response
 
@@ -269,9 +269,7 @@ class ConfigController:
             dbg_config_response.pop('config')
             dbg_config_response['config'] = 'config was removed to reduce logs.'
             dbg_config_response['sm_config'] = 'config was removed to reduce logs.'
-            module_logger.debug(
-                f'{func_name} returns {str(dbg_config_response)}'
-            )
+            module_logger.debug(f'{func_name} returns {dbg_config_response}')
 
         return config_response
 
@@ -360,9 +358,7 @@ class ConfigController:
             )
             if current_mode == request_mode:
                 # Normal exit
-                module_logger.debug(
-                    f'{func_name} returns {str(request_response)}'
-                )
+                module_logger.debug(f'{func_name} returns {request_response}')
                 return request_response
             else:
                 raise_422_error(
@@ -441,16 +437,15 @@ class ConfigController:
                 )
 
             while not ready:
-                if retry:
-                    attempts +=1
-                    if attempts >= 10:
-                        module_logger.debug(
-                            'Timed out waiting for node to be ready.'
-                        )
-                        break
-                    time.sleep(1)
-                else:
+                if not retry:
                     break
+                attempts +=1
+                if attempts >= 10:
+                    module_logger.debug(
+                        'Timed out waiting for node to be ready.'
+                    )
+                    break
+                time.sleep(1)
                 try:
                     ready, retry = system_ready(mcs_config_filename)
                 except CEJError as cej_error:
@@ -458,7 +453,7 @@ class ConfigController:
                         module_logger, func_name, cej_error.message
                     )
             else:
-                module_logger.debug(f'Node is ready to accept queries.')
+                module_logger.debug('Node is ready to accept queries.')
 
             app.config['txn']['config_changed'] = True
 
@@ -510,7 +505,7 @@ IP address.")
 
         begin_response = {'timestamp': str(datetime.now())}
 
-        module_logger.debug(f'{func_name} returns {str(begin_response)}')
+        module_logger.debug(f'{func_name} returns {begin_response}')
         return begin_response
 
 class CommitController:
@@ -550,7 +545,7 @@ class CommitController:
         app.config['txn']['manager_address'] = ''
         app.config['txn']['config_changed'] = False
 
-        module_logger.debug(f'{func_name} returns {str(commit_response)}')
+        module_logger.debug(f'{func_name} returns {commit_response}')
 
         return commit_response
 
@@ -603,11 +598,11 @@ class RollbackController:
 
 def get_use_sudo(app_config):
     privileges_section = app_config.get('Privileges', None)
-    if privileges_section is not None:
-        use_sudo = privileges_section.get('use_sudo', False)
-    else:
-        use_sudo = False
-    return use_sudo
+    return (
+        privileges_section.get('use_sudo', False)
+        if privileges_section is not None
+        else False
+    )
 
 
 class StartController:
@@ -637,7 +632,7 @@ class StartController:
         switch_node_maintenance(False)
         cherrypy.engine.publish('failover', True)
         start_response = {'timestamp': str(datetime.now())}
-        module_logger.debug(f'{func_name} returns {str(start_response)}')
+        module_logger.debug(f'{func_name} returns {start_response}')
         return start_response
 
 
@@ -672,7 +667,7 @@ class ShutdownController:
         switch_node_maintenance(True)
         cherrypy.engine.publish('failover', False)
         shutdown_response = {'timestamp': str(datetime.now())}
-        module_logger.debug(f'{func_name} returns {str(shutdown_response)}')
+        module_logger.debug(f'{func_name} returns {shutdown_response}')
         return shutdown_response
 
 
@@ -764,13 +759,12 @@ class ExtentMapController:
     @cherrypy.tools.validate_api_key()  # pylint: disable=no-member
     @cherrypy.tools.json_out()
     def get_footprint(self):
-        # Dummy footprint
-        result = {'em': '00f62e18637e1708b080b076ea6aa9b0',
-                  'journal': '00f62e18637e1708b080b076ea6aa9b0',
-                  'vss': '00f62e18637e1708b080b076ea6aa9b0',
-                  'vbbm': '00f62e18637e1708b080b076ea6aa9b0',
+        return {
+            'em': '00f62e18637e1708b080b076ea6aa9b0',
+            'journal': '00f62e18637e1708b080b076ea6aa9b0',
+            'vss': '00f62e18637e1708b080b076ea6aa9b0',
+            'vbbm': '00f62e18637e1708b080b076ea6aa9b0',
         }
-        return result
 
 
 class ClusterController:
@@ -901,7 +895,7 @@ class ClusterController:
         node = request_body.get('node', None)
         response = {'timestamp': str(datetime.now())}
 
-        module_logger.debug(f'{func_name} returns {str(response)}')
+        module_logger.debug(f'{func_name} returns {response}')
         return response
 
     @cherrypy.tools.timeit()
@@ -919,7 +913,7 @@ class ClusterController:
         dest = request_body.get('to', None)
         response = {'timestamp': str(datetime.now())}
 
-        module_logger.debug(f'{func_name} returns {str(response)}')
+        module_logger.debug(f'{func_name} returns {response}')
         return response
 
     @cherrypy.tools.timeit()
@@ -937,7 +931,7 @@ class ClusterController:
         dest = request_body.get('to', None)
         response = {'timestamp': str(datetime.now())}
 
-        module_logger.debug(f'{func_name} returns {str(response)}')
+        module_logger.debug(f'{func_name} returns {response}')
         return response
 
     @cherrypy.tools.timeit()
@@ -954,7 +948,7 @@ class ClusterController:
         node = request_body.get('node', None)
         response = {'timestamp': str(datetime.now())}
 
-        module_logger.debug(f'{func_name} returns {str(response)}')
+        module_logger.debug(f'{func_name} returns {response}')
         return response
 
     @cherrypy.tools.timeit()

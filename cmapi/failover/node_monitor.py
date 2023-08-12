@@ -21,10 +21,7 @@ class NodeMonitor:
         self._hbHistory = HBHistory()
         self._logger = logging.getLogger('node_monitor')
         self._runner = None
-        if config is not None:
-            self._config = config
-        else:
-            self._config = Config()
+        self._config = config if config is not None else Config()
         self._hb = HeartBeater(self._config, self._hbHistory)
         self.samplingInterval = samplingInterval
         # not used yet, KI-V-SS for V1 [old comment from Patrick]
@@ -57,10 +54,7 @@ class NodeMonitor:
     def _pickNewActor(self, nodes):
         if not nodes:
             return
-        if self.myName == nodes[0]:
-            self._isActorOfCohort = True
-        else:
-            self._isActorOfCohort = False
+        self._isActorOfCohort = self.myName == nodes[0]
 
     def _chooseNewPrimaryNode(self):
         self._agentComm.movePrimaryNode()
@@ -71,10 +65,7 @@ class NodeMonitor:
                 self._logger.info('Starting the monitor logic')
                 self._monitor()
             except Exception:
-                self._logger.error(
-                    f'monitor() caught an exception.',
-                    exc_info=True
-                )
+                self._logger.error('monitor() caught an exception.', exc_info=True)
             if not self._die:
                 time.sleep(1)
         self._logger.info("node monitor logic exiting normally...")
@@ -191,8 +182,7 @@ class NodeMonitor:
             # if we are in a cohort that has <= 50% of the desired nodes, enter standby
             if len(activeNodes)/len(desiredNodes) <= 0.5 and len(effectiveActiveNodeList)/len(desiredNodes) <= 0.5:
                 if not inStandbyMode:
-                    msg = "Only {} out of {} nodes are active.  At least {} are required.  Entering standby mode to protect the system."\
-                        .format(len(activeNodes), len(desiredNodes), int(len(desiredNodes)/2) + 1)
+                    msg = f"Only {len(activeNodes)} out of {len(desiredNodes)} nodes are active.  At least {len(desiredNodes) // 2 + 1} are required.  Entering standby mode to protect the system."
                     self._agentComm.raiseAlarm(msg)
                     self._logger.critical(msg)
                     self._agentComm.enterStandbyMode()
@@ -212,10 +202,10 @@ class NodeMonitor:
 
             # as of here, this node is the actor of its quorum
 
-            if len(deactivateSet) > 0:
+            if deactivateSet:
                 self._agentComm.deactivateNodes(list(deactivateSet))
 
-            if len(activateSet) > 0:
+            if activateSet:
                 self._agentComm.activateNodes(activateSet)
 
             # if the primary node is in this list to be deactivated, or its already on the inactive list

@@ -49,9 +49,7 @@ class DBRMSocketHandler():
         :return: connected state
         :rtype: bool
         """
-        if self._host and self._port:
-            return True
-        return False
+        return bool(self._host and self._port)
 
     def _recreate_socket(self) -> None:
         """Create new internal _socket object.
@@ -195,7 +193,7 @@ class DBRMSocketHandler():
                 raise RuntimeError(
                     'DBRM socket connection broken while sending.'
                 )
-            totalsent = totalsent + sent
+            totalsent += sent
 
     def connect(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT):
         """Connect to socket.
@@ -244,5 +242,4 @@ class DBRMSocketHandler():
             # receive long strings count to meet new bytestream protocol
             # requirements (after MCS 6.2.1 release)
             long_strings_count_bytes = self._receive(4)
-        data_bytes = self._receive(data_length)
-        return data_bytes
+        return self._receive(data_length)

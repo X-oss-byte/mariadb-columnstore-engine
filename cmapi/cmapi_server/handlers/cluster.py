@@ -107,7 +107,7 @@ class ClusterHandler():
             rollback_transaction(transaction_id, cs_config_filename=config)
             raise CMAPIBasicError('Starting transaction isn\'t successful.')
 
-        if suceeded and len(successes) == 0:
+        if len(successes) == 0:
             rollback_transaction(transaction_id, cs_config_filename=config)
             raise CMAPIBasicError('There are no nodes in the cluster.')
 
@@ -174,7 +174,7 @@ class ClusterHandler():
             rollback_transaction(transaction_id, cs_config_filename=config)
             raise CMAPIBasicError('Starting transaction isn\'t successful.')
 
-        if suceeded and len(successes) == 0:
+        if len(successes) == 0:
             rollback_transaction(transaction_id, cs_config_filename=config)
             raise CMAPIBasicError('There are no nodes in the cluster.')
 
@@ -418,10 +418,8 @@ class ClusterHandler():
 
         if master is None:
             raise CMAPIBasicError('No master found in the cluster.')
-        else:
-            master = master['IPAddr']
-            payload = {'cluster_mode': mode}
-            url = f'https://{master}:8640/cmapi/{get_version()}/node/config'
+        master = master['IPAddr']
+        url = f'https://{master}:8640/cmapi/{get_version()}/node/config'
 
         try:
             suceeded, transaction_id, successes = start_transaction(
@@ -438,7 +436,7 @@ class ClusterHandler():
 
         nc = NodeConfig()
         root = nc.get_current_config_root(config_filename=config)
-        payload['manager'] = root.find('./ClusterManager').text
+        payload = {'cluster_mode': mode, 'manager': root.find('./ClusterManager').text}
         payload['revision'] = root.find('./ConfigRevision').text
         payload['timeout'] = timeout
         payload['cluster_mode'] = mode

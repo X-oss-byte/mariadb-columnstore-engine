@@ -107,7 +107,7 @@ def get_network_interfaces():
             family, addr = getfamaddr(ifa.ifa_addr.contents)
             if addr:
                 if family not in i.addresses:
-                    i.addresses[family] = list()
+                    i.addresses[family] = []
                 i.addresses[family].append(addr)
         return retval.values()
     finally:

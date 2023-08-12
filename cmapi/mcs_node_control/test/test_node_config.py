@@ -141,7 +141,7 @@ class NodeConfigTest(TestCase):
             local_addresses = [addr.split('/')[0] for addr in local_addresses if len(addr)]
             os.system(f"mcsSetConfig DBRM_Controller IPAddr {local_addresses[0]}")
             self.assertTrue(node_config.is_primary_node())
-            os.system(f"mcsSetConfig DBRM_Controller IPAddr 8.8.8.8")
+            os.system("mcsSetConfig DBRM_Controller IPAddr 8.8.8.8")
             self.assertFalse(node_config.is_primary_node())
             os.system(f"mcsSetConfig DBRM_Controller IPAddr {current_master}")
         except AssertionError as e:
@@ -174,9 +174,9 @@ class NodeConfigTest(TestCase):
             node_config = NodeConfig()
             root = node_config.get_current_config_root()
             current_master = node_config.get_dbrm_conn_info(root)['IPAddr']
-            os.system(f"mcsSetConfig DBRM_Controller IPAddr 127.0.0.1")
+            os.system("mcsSetConfig DBRM_Controller IPAddr 127.0.0.1")
             self.assertTrue(node_config.is_single_node())
-            os.system(f"mcsSetConfig DBRM_Controller IPAddr 8.8.8.8")
+            os.system("mcsSetConfig DBRM_Controller IPAddr 8.8.8.8")
             self.assertFalse(node_config.is_single_node())
             os.system(f"mcsSetConfig DBRM_Controller IPAddr {current_master}")
         except AssertionError as e:
@@ -260,28 +260,22 @@ class NodeConfigTest(TestCase):
             node_config = NodeConfig()
             current_module_id = read_module_id()
             dummy_dbroots = [42, 43]
-            dbroot_seq_id = 2
-            for d in dummy_dbroots:
+            for dbroot_seq_id, d in enumerate(dummy_dbroots, start=2):
                 os.system(f"mcsSetConfig SystemModuleConfig \
     ModuleDBRootID{current_module_id}-{dbroot_seq_id}-3 {d}")
-                dbroot_seq_id += 1
             root = node_config.get_current_config_root()
             dbroots_to_create = list(node_config.dbroots_to_create(root=root,                                                                                                         module_id=current_module_id))
             for d in dbroots_to_create:
                 self.assertTrue(d in dummy_dbroots)
         except AssertionError as e:
-            dbroot_seq_id = 2
-            for d in dummy_dbroots:
+            for dbroot_seq_id, d in enumerate(dummy_dbroots, start=2):
                 os.system(f"mcsSetConfig -x SystemModuleConfig \
     ModuleDBRootID{current_module_id}-{dbroot_seq_id}-3 {d}")
-                dbroot_seq_id += 1
             raise e
 
-        dbroot_seq_id = 2
-        for d in dummy_dbroots:
+        for dbroot_seq_id, d in enumerate(dummy_dbroots, start=2):
             os.system(f"mcsSetConfig -x SystemModuleConfig \
 ModuleDBRootID{current_module_id}-{dbroot_seq_id}-3 {d}")
-            dbroot_seq_id += 1
 
 
 if __name__ == '__main__':

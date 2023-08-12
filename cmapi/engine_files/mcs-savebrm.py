@@ -27,7 +27,7 @@ if __name__ == '__main__':
         pm_count = int(config_root.find('./SystemModuleConfig/ModuleCount3').text)
     except (FileNotFoundError, AttributeError, ValueError) as e:
         print("Exception had been raised. Continue anyway")
-        print(str(e))
+        print(e)
 
     storage = 'LocalStorage'
     sm_config = configparser.ConfigParser()
@@ -40,8 +40,8 @@ if __name__ == '__main__':
     is_primary = False
 
     # For multi-node with local storage or default installations
-    if (storage.lower() != 's3' and master_addr != default_addr) or \
-master_addr == default_addr:
+    if     (storage.lower() != 's3' and master_addr != default_addr) or \
+    master_addr == default_addr:
         is_primary = True
         print('Multi-node with local-storage detected.')
     else:
@@ -53,13 +53,12 @@ master_addr == default_addr:
         except ImportError as e:
             print('requests Python module does not exist. \
     Please install CMAPI first.')
-        if has_requests is True:
+        if has_requests:
             try:
                 print('Requesting for the primary node status.')
                 api_version = get_version()
                 api_port = get_port()
-                url = "https://{}:{}/cmapi/{}/node/primary".format(default_addr, \
-    api_port, api_version)
+                url = f"https://{default_addr}:{api_port}/cmapi/{api_version}/node/primary"
                 resp = requests.get(url,
                                  verify=False,
                                  timeout=REST_REQUEST_TO)
@@ -69,16 +68,16 @@ master_addr == default_addr:
                     is_primary = resp.json()['is_primary'] == 'True'
             except:
                 print('Failed to request.')
-                print(str(e))
+                print(e)
 
-    if is_primary is True:
+    if is_primary:
         try:
             retcode = subprocess.call(savebrm, shell=True)
             if retcode < 0:
-                print('{} exits with {}.'.format(savebrm, retcode))
+                print(f'{savebrm} exits with {retcode}.')
                 sys.exit(0)
         except OSError as e:
-                print(str(e))
-                sys.exit(0)
+            print(e)
+            sys.exit(0)
 
     sys.exit(0)

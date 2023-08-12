@@ -146,7 +146,7 @@ def start_transaction(
                     # successfully started a txn on so far. Then it will try
                     # again to get a transaction on all nodes. Put all
                     # conditions where that is the desired behavior here.
-                    if int(r.status_code / 100) == 4:
+                    if r.status_code // 100 == 4:
                         logging.debug(
                              'Got a 4xx error while beginning transaction '
                             f'with response text {r.text}'
@@ -199,7 +199,7 @@ def rollback_txn_attempt(key, version, txnid, nodes):
     body = {'id': txnid}
     for node in nodes:
         url = f"https://{node}:8640/cmapi/{version}/node/rollback"
-        for retry in range(5):
+        for _ in range(5):
             try:
                 r = requests.put(
                     url, verify=False, headers=headers, json=body, timeout=5
@@ -254,7 +254,7 @@ def commit_transaction(
 
     for node in nodes:
         url = f"https://{node}:8640/cmapi/{version}/node/commit"
-        for retry in range(5):
+        for _ in range(5):
             try:
                 r = requests.put(url, verify = False, headers = headers, json = body, timeout = 5)
                 r.raise_for_status()
@@ -367,11 +367,11 @@ def broadcast_new_config(
     loop.run_until_complete(asyncio.wait(tasks))
     loop.close()
 
-    if len(success_nodes) > 0:
+    if success_nodes:
         logging.info(
             f'Successfully pushed new config file to {success_nodes}'
         )
-    if len(failed_nodes) > 0:
+    if failed_nodes:
         logging.error(
             f'Failed to push the new config to {failed_nodes}'
         )
@@ -491,12 +491,11 @@ def in_maintenance_state(config=DEFAULT_MCS_CONF_PATH):
     nc = NodeConfig()
     root = nc.get_current_config_root(config, upgrade=False)
     raw_state = root.find('./Maintenance')
-    # if no Maintainace tag in xml config found
-    state = False
-    if raw_state is not None:
-        # returns True on "true" string else return false
-        state = lxml.objectify.BoolElement(raw_state.text)
-    return state
+    return (
+        lxml.objectify.BoolElement(raw_state.text)
+        if raw_state is not None
+        else False
+    )
 
 
 def get_current_key(config_parser):
@@ -535,13 +534,13 @@ def get_dbroots(node, config=DEFAULT_MCS_CONF_PATH):
             hostname = socket.gethostbyaddr(socket.gethostname())[0]
 
 
-        if node == ip_addr or node == hostname or node == node_fqdn:
-            for j in range(
-                1, int(smc_node.find(f"./ModuleDBRootCount{i}-3").text) + 1
-            ):
-                dbroots.append(
-                    smc_node.find(f"./ModuleDBRootID{i}-{j}-3").text
+        if node in [ip_addr, hostname, node_fqdn]:
+            dbroots.extend(
+                smc_node.find(f"./ModuleDBRootID{i}-{j}-3").text
+                for j in range(
+                    1, int(smc_node.find(f"./ModuleDBRootCount{i}-3").text) + 1
                 )
+            )
     return dbroots
 
 
@@ -675,15 +674,17 @@ def wait_for_deactivation_or_put_config(
         return
 
     final_time = datetime.datetime.now() + datetime.timedelta(seconds = 40)
-    while config_mtime == os.path.getmtime(config_filename) and \
-      len(my_names.intersection(set(get_active_nodes(config_filename)))) > 0 and \
-      datetime.datetime.now() < final_time:
+    while (
+        config_mtime == os.path.getmtime(config_filename)
+        and my_names.intersection(set(get_active_nodes(config_filename)))
+        and datetime.datetime.now() < final_time
+    ):
         logging.info("wait_for_deactivation_or_put_config: Waiting...")
         time.sleep(5)
 
     if config_mtime != os.path.getmtime(config_filename):
         logging.info("wait_for_deactivation_or_put_config: A new config was received, safe to continue.")
-    elif len(my_names.intersection(set(get_active_nodes(config_filename)))) == 0:
+    elif not my_names.intersection(set(get_active_nodes(config_filename))):
         logging.info("wait_for_deactivation_or_put_config: Was removed from the cluster, safe to continue.")
     else:
         logging.info("wait_for_deactivation_or_put_config: Time limit reached, continuing.")
@@ -719,7 +720,9 @@ def if_primary_restart(
             logging.warning(f"if_primary_restart(): failed to start the cluster, got {str(e)}")
             time.sleep(10)
     if not success:
-        logging.error(f"if_primary_restart(): failed to start the cluster.  Manual intervention is required.")
+        logging.error(
+            "if_primary_restart(): failed to start the cluster.  Manual intervention is required."
+        )
 
 
 def get_cej_info(config_root):
@@ -785,10 +788,7 @@ def system_ready(config_filename=DEFAULT_MCS_CONF_PATH):
     ret = subprocess.run(cmd, stdout=subprocess.PIPE, shell = True)
     if ret.returncode == 0:
         response = ret.stdout.decode("utf-8").strip()
-        if response == '1':
-            return True, False
-        else:
-            return False, True
+        return (True, False) if response == '1' else (False, True)
     return False, False
 
 

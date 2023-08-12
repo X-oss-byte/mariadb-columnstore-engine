@@ -63,8 +63,7 @@ class NodeStatus:
 
         :rtype: generator of ints
         """
-        for id in get_dbroots_list(path):
-            yield id
+        yield from get_dbroots_list(path)
 
 
     def get_host_uptime(self):

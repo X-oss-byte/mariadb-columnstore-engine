@@ -32,9 +32,7 @@ class SystemdDispatcher(BaseDispatcher):
             cmd = f'sudo {cmd}'
         logging.debug(f'Call "{command}" on service "{service}" with "{cmd}".')
         success, output = cls.exec_command(cmd, *args, **kwargs)
-        if return_output:
-            return success, output
-        return success
+        return (success, output) if return_output else success
 
     @classmethod
     def init(cls):
@@ -43,9 +41,7 @@ class SystemdDispatcher(BaseDispatcher):
         if success:
             # raw result will be like
             # "systemd 239 (245.4-4ubuntu3.17)\n <string with compile flags>"
-            cls.systemctl_version = int(
-                re.search(r'systemd (\d+)', output).group(1)
-            )
+            cls.systemctl_version = int(re.search(r'systemd (\d+)', output)[1])
             logging.info(f'Detected {cls.systemctl_version} SYSTEMD version.')
         else:
             logging.error('Couldn\'t detect SYSTEMD version')
@@ -78,11 +74,7 @@ class SystemdDispatcher(BaseDispatcher):
             service_state = service_state.split('=')[1]
         logging.debug(f'Service "{service}" is in "{service_state}" state')
         # interpret non "active" state as not running service
-        if service_state == 'active':
-            return True
-        # output could be inactive, activating or even empty if
-        # command execution was unsuccessfull
-        return False
+        return service_state == 'active'
 
     @staticmethod
     def _workernode_get_service_name(is_primary: bool) -> str:

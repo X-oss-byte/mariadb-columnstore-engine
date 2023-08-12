@@ -13,10 +13,10 @@ logger = logging.getLogger('agent_comm')
 class AgentBase:
 
     def activateNodes(self, nodes):
-        print("AgentBase: Got activateNodes({})".format(nodes))
+        print(f"AgentBase: Got activateNodes({nodes})")
 
     def deactivateNodes(self, nodes):
-        print("AgentBase: Got deactivateNodes({})".format(nodes))
+        print(f"AgentBase: Got deactivateNodes({nodes})")
 
     def movePrimaryNode(self, placeholder):
         print("AgentBase: Got movePrimaryNode()")
@@ -29,7 +29,7 @@ class AgentBase:
         return 0
 
     def raiseAlarm(self, msg):
-        print("AgentBase: Got raiseAlarm({})".format(msg))
+        print(f"AgentBase: Got raiseAlarm({msg})")
 
     def startTransaction(self, extra_nodes = [], remove_nodes = []):
         print(f"AgentBase: Got startTransaction, extra_nodes={extra_nodes}, remove_nodes={remove_nodes}")
@@ -77,11 +77,7 @@ class OpAndArgs:
 class AgentComm:
 
     def __init__(self, agent = None):
-        if agent is None:
-            self._agent = AgentBase()
-        else:
-            self._agent = agent
-
+        self._agent = AgentBase() if agent is None else agent
         # deduper contains queue contents, events in progress, and finished
         # events up to 10s after they finished
         self._deduper = {}

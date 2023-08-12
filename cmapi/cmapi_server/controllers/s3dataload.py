@@ -207,7 +207,7 @@ class S3DataLoadController:
 
             return gs_process
 
-        module_logger.debug(f'LOAD S3 Data')
+        module_logger.debug('LOAD S3 Data')
         request = cherrypy.request
         request_body = request.json
 
@@ -242,7 +242,7 @@ class S3DataLoadController:
             download_proc = prepare_aws(bucket, filename, secret, key, region)
         elif storage == 'gs':
             temporary_config = os.path.join(
-                tempfile.gettempdir(), '.boto.' + str(uuid.uuid4())
+                tempfile.gettempdir(), f'.boto.{str(uuid.uuid4())}'
             )
 
             download_proc = prepare_google_storage(
@@ -310,7 +310,7 @@ class S3DataLoadController:
             download_status = download_proc.poll()
 
             if cpimport_status is not None \
-              and download_status is not None:
+                  and download_status is not None:
                 break
 
 
@@ -336,8 +336,4 @@ class S3DataLoadController:
                 'processed': 0
             }
 
-        return {
-            'success': True,
-            'inserted': match.group(2),
-            'processed': match.group(1)
-        }
+        return {'success': True, 'inserted': match[2], 'processed': match[1]}

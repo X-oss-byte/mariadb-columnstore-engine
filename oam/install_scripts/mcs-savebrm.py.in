@@ -61,7 +61,7 @@ def cmapi_available():
     :rtype: bool
     """
     logging.debug('Detecting CMAPI is up and running.')
-    url = 'https://{}:{}/notfound'.format(LOCALHOST, API_PORT)
+    url = f'https://{LOCALHOST}:{API_PORT}/notfound'
     request = Request(method='POST', url=url)
     ctx = get_unverified_context()
     try:
@@ -102,10 +102,8 @@ def get_ip_address_by_nic(ifname):
         )
     except Exception as exc:
         logging.debug(
-            'Exception while getting IP address of an "{}" interface'.format(
-                ifname
-            ),
-            exc_info=True
+            f'Exception while getting IP address of an "{ifname}" interface',
+            exc_info=True,
         )
     finally:
         s.close()
@@ -120,9 +118,7 @@ def is_primary_fallback(current_hostname):
     :return: is node primary
     :rtype: bool
     """
-    logging.debug(
-        'Current DBRM_Controller/IPAddr is {}'.format(current_hostname)
-    )
+    logging.debug(f'Current DBRM_Controller/IPAddr is {current_hostname}')
     hostnames = set()
     for _, nic_name in socket.if_nameindex():
         ip_addr = get_ip_address_by_nic(nic_name)
@@ -131,7 +127,7 @@ def is_primary_fallback(current_hostname):
             hostnames.update([hostnames_3tuple[0], *hostnames_3tuple[1]])
         except:
             pass
-    logging.debug('Found hostnames {}.'.format(hostnames))
+    logging.debug(f'Found hostnames {hostnames}.')
     return current_hostname in LOCALHOSTS or current_hostname in hostnames
 
 
@@ -144,9 +140,7 @@ def is_node_primary(conf_root):
     :rtype: bool
     """
     if cmapi_available():
-        url = 'https://{}:{}/cmapi/{}/node/primary'.format(
-            LOCALHOST, API_PORT, API_VERSION
-        )
+        url = f'https://{LOCALHOST}:{API_PORT}/cmapi/{API_VERSION}/node/primary'
         ctx = get_unverified_context()
         # Actually for this endpoint no need to provide api key cause it's
         # not required
@@ -163,9 +157,7 @@ def is_node_primary(conf_root):
             logging.warning(
                 'Something goes wrong while requesting primary status ',
                 'through api.',
-                'Got response code "{}" with reason "{}".'.format(
-                    exc.code, exc.reason
-                )
+                f'Got response code "{exc.code}" with reason "{exc.reason}".',
             )
         except URLError:
             logging.warning(
@@ -181,10 +173,7 @@ def is_node_primary(conf_root):
         if success:
             dict_response = json.loads(response.decode('utf-8'))
             is_primary = dict_response.get('is_primary', False)
-            if is_primary and is_primary in ('True', 'true'):
-                is_primary = True
-            else:
-                is_primary = False
+            is_primary = bool(is_primary and is_primary in ('True', 'true'))
             return is_primary
 
     logging.info('Trying to detect primary without cmapi running.')
@@ -225,7 +214,7 @@ if __name__ == '__main__':
         try:
             retcode = subprocess.check_call(SAVEBRM, shell=True)
         except subprocess.CalledProcessError as exc:
-            logging.error('{} exits with {}.'.format(exc.cmd, exc.returncode))
+            logging.error(f'{exc.cmd} exits with {exc.returncode}.')
             sys.exit(1)
         except OSError:
             logging.error('Os error while calling savebrm', exc_info=True)

@@ -377,7 +377,7 @@ class MCSProcessManager:
         if node_stopped:
             return len(running_procs) == 0
         node_progs = cls._get_sorted_progs(is_primary)
-        return set(node_progs) == set(p['name'] for p in running_procs)
+        return set(node_progs) == {p['name'] for p in running_procs}
 
     @classmethod
     def start_node(cls, is_primary: bool, use_sudo: bool = True):

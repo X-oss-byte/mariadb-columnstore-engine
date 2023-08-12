@@ -71,10 +71,8 @@ def cmapi_available(host=LOCALHOST):
     :return: is CMAPI running or not
     :rtype: bool
     """
-    logging.debug(
-        'Detecting CMAPI is up and running on {}.'.format(host)
-    )
-    url = 'https://{}:{}/notfound'.format(host, API_PORT)
+    logging.debug(f'Detecting CMAPI is up and running on {host}.')
+    url = f'https://{host}:{API_PORT}/notfound'
     request = Request(method='POST', url=url)
     ctx = get_unverified_context()
     try:
@@ -115,10 +113,8 @@ def get_ip_address_by_nic(ifname):
         )
     except Exception as exc:
         logging.debug(
-            'Exception while getting IP address of an "{}" interface'.format(
-                ifname
-            ),
-            exc_info=True
+            f'Exception while getting IP address of an "{ifname}" interface',
+            exc_info=True,
         )
     finally:
         s.close()
@@ -133,16 +129,13 @@ def is_primary_fallback(current_hostname):
     :return: is node primary
     :rtype: bool
     """
-    logging.debug(
-        'Current DBRM_Controller/IPAddr is {}'.format(current_hostname)
-    )
+    logging.debug(f'Current DBRM_Controller/IPAddr is {current_hostname}')
     hostnames = set()
     for _, nic_name in socket.if_nameindex():
-        ip_addr = get_ip_address_by_nic(nic_name)
-        if ip_addr:
+        if ip_addr := get_ip_address_by_nic(nic_name):
             hostnames_3tuple = socket.gethostbyaddr(ip_addr)
             hostnames.update([hostnames_3tuple[0], *hostnames_3tuple[1]])
-    logging.debug('Found hostnames {}.'.format(hostnames))
+    logging.debug(f'Found hostnames {hostnames}.')
     return current_hostname in hostnames
 
 
@@ -155,9 +148,7 @@ def is_node_primary(conf_root):
     :rtype: bool
     """
     if cmapi_available():
-        url = 'https://{}:{}/cmapi/{}/node/primary'.format(
-            LOCALHOST, API_PORT, API_VERSION
-        )
+        url = f'https://{LOCALHOST}:{API_PORT}/cmapi/{API_VERSION}/node/primary'
         ctx = get_unverified_context()
         # Actually for this endpoint no need to provide api key cause it's
         # not required
@@ -174,9 +165,7 @@ def is_node_primary(conf_root):
             logging.warning(
                 'Something goes wrong while requesting primary status ',
                 'through api.',
-                'Got response code "{}" with reason "{}".'.format(
-                    exc.code, exc.reason
-                )
+                f'Got response code "{exc.code}" with reason "{exc.reason}".',
             )
         except URLError:
             logging.warning(
@@ -192,10 +181,7 @@ def is_node_primary(conf_root):
         if success:
             dict_response = json.loads(response.decode('utf-8'))
             is_primary = dict_response.get('is_primary', False)
-            if is_primary and is_primary in ('True', 'true'):
-                is_primary = True
-            else:
-                is_primary = False
+            is_primary = bool(is_primary and is_primary in ('True', 'true'))
             return is_primary
 
     logging.info('Trying to detect primary without cmapi running.')
@@ -213,17 +199,13 @@ def get_meta(conf_root, meta_type):
     :return: meta data
     :rtype: bytes
     """
-    logging.info('Pulling {} from the primary node.'.format(meta_type))
+    logging.info(f'Pulling {meta_type} from the primary node.')
     primary_address = conf_root.find('./DBRM_Controller/IPAddr').text
-    url = 'https://{}:{}/cmapi/{}/node/meta/{}'.format(
-        primary_address, API_PORT, API_VERSION, meta_type
-    )
+    url = f'https://{primary_address}:{API_PORT}/cmapi/{API_VERSION}/node/meta/{meta_type}'
 
     api_key = get_api_key()
     if len(api_key) == 0:
-        logging.error(
-            'Failed to find API key in {}.'.format(CMAPI_CONFIG_PATH)
-        )
+        logging.error(f'Failed to find API key in {CMAPI_CONFIG_PATH}.')
         sys.exit(1)
     headers = {'x-api-key': api_key}
     ctx = get_unverified_context()
@@ -232,22 +214,18 @@ def get_meta(conf_root, meta_type):
         with urlopen(request, context=ctx, timeout=MINUTE) as req:
             response = req.read()
     except HTTPError:
-        logging.error(
-            'Error requesting {} from the primary node.'.format(meta_type)
-        )
+        logging.error(f'Error requesting {meta_type} from the primary node.')
         raise
     except URLError:
         logging.warning(
             'CMAPI on primary became unavailable while trying',
-            'to request {} from it.'.format(meta_type)
+            f'to request {meta_type} from it.',
         )
         raise
     except Exception:
         logging.error(
-            'Undefined exception while trying to request {}.'.format(
-                meta_type
-            ),
-            exc_info=True
+            f'Undefined exception while trying to request {meta_type}.',
+            exc_info=True,
         )
         raise
     # return content in bytes
@@ -255,7 +233,6 @@ def get_meta(conf_root, meta_type):
 
 def read_from_sm_with_retry(brm_path):
     func_name = 'read_from_sm_with_retry'
-    result = ''
     retry_count = 0
     success = False
     args = [SMCAT, brm_path]
@@ -264,18 +241,14 @@ def read_from_sm_with_retry(brm_path):
         ret = subprocess.run(args, stdout=subprocess.PIPE)
         if ret.returncode == 0:
             return ret.stdout
-        else:
-            logging.error(
-                '{} got error code {} from smcat, retrying'.format(
-                    func_name, ret.returncode
-                )
-            )
-            time.sleep(1)
-            retry_count += 1
-            continue
+        logging.error(
+            f'{func_name} got error code {ret.returncode} from smcat, retrying'
+        )
+        time.sleep(1)
+        retry_count += 1
     if not success:
-        logging.error('Can not read {} using {}.'.format(brm_path, SMCAT))
-    return result
+        logging.error(f'Can not read {brm_path} using {SMCAT}.')
+    return ''
 
 
 def read_from_disk(brm_path):
@@ -283,18 +256,14 @@ def read_from_disk(brm_path):
         return subprocess.check_output(['cat', brm_path])
     except subprocess.CalledProcessError:
         # will happen when brm file does not exist
-        logging.error('{} does not exist.'.format(brm_path))
+        logging.error(f'{brm_path} does not exist.')
 
 
 if __name__ == '__main__':
     logging.basicConfig(
         format='%(levelname)s: %(message)s', level=logging.DEBUG
     )
-    # To avoid systemd in container environment
-    use_systemd = True
-    if len(sys.argv) > 1:
-        use_systemd = sys.argv[1] != 'no'
-
+    use_systemd = sys.argv[1] != 'no' if len(sys.argv) > 1 else True
     sm_config = configparser.ConfigParser()
     sm_config.read(SM_CONFIG_PATH)
     storage = sm_config.get(
@@ -318,8 +287,8 @@ if __name__ == '__main__':
                 subprocess.check_call(cmd, shell=True)
             except subprocess.CalledProcessError as exc:
                 logging.error(
-                    'Failed to start storagemanager. {}'.format(cmd),
-                    'exits with {}.'.format(exc.returncode)
+                    f'Failed to start storagemanager. {cmd}',
+                    f'exits with {exc.returncode}.',
                 )
                 sys.exit(1)
             time.sleep(1)   # allow SM time to init
@@ -337,33 +306,24 @@ if __name__ == '__main__':
 
         config_root.find('./SystemConfig/DataFilePlugin').text = 'libcloudio.so'
 
-        temp_mcs_conf_path = '{}.loadbrm'.format(MCS_CONFIG_PATH)
+        temp_mcs_conf_path = f'{MCS_CONFIG_PATH}.loadbrm'
         cs_config.write(temp_mcs_conf_path)
-        os.replace(
-            '{}.loadbrm'.format(MCS_CONFIG_PATH),
-            MCS_CONFIG_PATH
-        )    # atomic replacement
+        os.replace(f'{MCS_CONFIG_PATH}.loadbrm', MCS_CONFIG_PATH)
 
     # Single-node on S3
     if s3_enabled and not is_multinode:
         try:
             if use_systemd:
-                args = [
-                    'su', '-s',
-                    '/bin/sh', '-c',
-                    '{} {}'.format(SMCAT, S3_DBROOT1_BRM_PATH), USER
-                ]
+                args = ['su', '-s', '/bin/sh', '-c', f'{SMCAT} {S3_DBROOT1_BRM_PATH}', USER]
             else:
                 args = [SMCAT, S3_DBROOT1_BRM_PATH]
 
             brm_saves_current = subprocess.check_output(args)
         except subprocess.CalledProcessError as e:
             # will happen when brm file does not exist
-            logging.error(
-                '{} does not exist.'.format(S3_DBROOT1_BRM_PATH)
-            )
+            logging.error(f'{S3_DBROOT1_BRM_PATH} does not exist.')
     else:
-        brm = '{}_current'.format(dbrmroot)
+        brm = f'{dbrmroot}_current'
         if is_multinode:
             is_primary = False
             try:
@@ -382,16 +342,12 @@ if __name__ == '__main__':
                             if not os.path.exists(dbrmroot):
                                 os.makedirs(dbrmroot)
                                 if use_systemd:
-                                    os.system('chown -R {}:{} {}'.format(USER, GROUP, COLUMNSTORE_TMP_DIR))
+                                    os.system(f'chown -R {USER}:{GROUP} {COLUMNSTORE_TMP_DIR}')
                                     shutil.chown(dbrmroot, USER, GROUP)
 
-                            current_name = '{}_{}'.format(dbrmroot, meta_type)
+                            current_name = f'{dbrmroot}_{meta_type}'
 
-                            logging.info(
-                                'Saving {} to {}'.format(
-                                    meta_type, current_name
-                                )
-                            )
+                            logging.info(f'Saving {meta_type} to {current_name}')
                             path = Path(current_name)
                             path.write_bytes(meta_data)
                             shutil.chown(current_name, USER, GROUP)
@@ -424,16 +380,9 @@ if __name__ == '__main__':
 
     if brm_saves_current:
         if use_systemd:
-            cmd = 'su -s /bin/sh -c "{} {}{}" {}'.format(
-                LOADBRM, dbrmroot,
-                brm_saves_current.decode('utf-8').replace('BRM_saves', ''),
-                USER
-            )
+            cmd = f"""su -s /bin/sh -c "{LOADBRM} {dbrmroot}{brm_saves_current.decode('utf-8').replace('BRM_saves', '')}" {USER}"""
         else:
-            cmd = '{} {}{}'.format(
-                LOADBRM, dbrmroot,
-                brm_saves_current.decode('utf-8').replace('BRM_saves', '')
-            )
+            cmd = f"{LOADBRM} {dbrmroot}{brm_saves_current.decode('utf-8').replace('BRM_saves', '')}"
         try:
             subprocess.check_call(cmd, shell=True)
             # systemd services by default works using mysql privileges.
@@ -443,7 +392,7 @@ if __name__ == '__main__':
                 for shm_file in glob.glob('/dev/shm/@SHMEM_FILE_GLOB@*'):
                     shutil.chown(shm_file, USER, GROUP)
         except subprocess.CalledProcessError as exc:
-            logging.error('{} exits with {}.'.format(cmd, exc.returncode))
+            logging.error(f'{cmd} exits with {exc.returncode}.')
             sys.exit(1)
         except OSError:
             sys.exit(1)

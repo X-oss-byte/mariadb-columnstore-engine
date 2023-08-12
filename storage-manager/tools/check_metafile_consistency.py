@@ -21,8 +21,7 @@ def get_envvar(match):
 def resolve_envvars(setting):
     result = str(setting)
     pattern = ("\$\{(.*)\}")
-    result = re.sub(pattern, get_envvar, setting)
-    return result
+    return re.sub(pattern, get_envvar, setting)
 
 def parseArgs():
     global cloudPath
@@ -43,7 +42,7 @@ def parseArgs():
         #print("{}\n{}\n{}\n{}".format(cloudPath, metaPath, cachePath, journalPath))       
 
     except Exception as e:
-        parser.error("Failed to parse the config file.  Got '{}'".format(e))
+        parser.error(f"Failed to parse the config file.  Got '{e}'")
 
     if not Path(cloudPath).is_dir() or not Path(metaPath).is_dir() or not Path(journalPath).is_dir() or not Path(cachePath).is_dir():
         parser.error("cloudpath, metapath, and journalpath need to be directories.")
@@ -63,7 +62,9 @@ def validateMetadata(metafile):
             #if fields[2] != obj["length"]:
             #    print("object {}: in metadata length is {}, key says {}".format(obj["key"], obj["length"], fields[2]))
             if fields[1] != obj["offset"]:
-                print("object {}: in metadata offset is {}, key says {}".format(obj["key"], obj["offset"], fields[1]))
+                print(
+                    f'object {obj["key"]}: in metadata offset is {obj["offset"]}, key says {fields[1]}'
+                )
 
             realSize = -1
             if cPath.exists():
@@ -77,20 +78,20 @@ def validateMetadata(metafile):
             else:
                 inCloud = False
             if not inCache and not inCloud:
-                print("{} does not exist in cache or the cloud".format(obj["key"]))
+                print(f'{obj["key"]} does not exist in cache or the cloud')
                 continue        
 
-            # There are a couple cases where the length field and actual file size legitmately 
-            # don't match.
-            # 1) IOC::truncate() currently doesn't rename the object on truncate for
-            # performance reasons.
-            # 2) IOC::write() currently does the same on modifying an existing object.  
-            # In that case, we can validate the length by parsing the journal file as well.
-            #if int(obj["length"]) != realSize:
-            #    print("{} has the wrong length in its key.  Actual length is {}.".format(obj["key"], realSize))
-        
+                    # There are a couple cases where the length field and actual file size legitmately 
+                    # don't match.
+                    # 1) IOC::truncate() currently doesn't rename the object on truncate for
+                    # performance reasons.
+                    # 2) IOC::write() currently does the same on modifying an existing object.  
+                    # In that case, we can validate the length by parsing the journal file as well.
+                    #if int(obj["length"]) != realSize:
+                    #    print("{} has the wrong length in its key.  Actual length is {}.".format(obj["key"], realSize))
+
     except Exception as e:
-        print("Failed to parse {}, got {}".format(metafile, e))
+        print(f"Failed to parse {metafile}, got {e}")
         traceback.print_exc() 
 
 
@@ -103,9 +104,9 @@ def walkMetaDir(basepath):
             if p.suffix == ".meta": 
                 validateMetadata(p)
             else:
-                print("{} is not a metadata file".format(p))
+                print(f"{p} is not a metadata file")
         else:
-            print("{} is not a metadata file".format(p))
+            print(f"{p} is not a metadata file")
 
 # Verifies that everything in journalPath has a corresponding object in cloud/cache
 def verifyValidJournalFiles():
@@ -113,17 +114,21 @@ def verifyValidJournalFiles():
         l_cachePath = cachePath/(p.stem);
         l_cloudPath = cloudPath/(p.stem);
         if not l_cachePath.is_file() and not l_cloudPath.is_file():
-            print("Journal file {} has no corresponding object in cache or cloud storage".format(p))
+            print(
+                f"Journal file {p} has no corresponding object in cache or cloud storage"
+            )
 
 def verifyNoOrphans():
     for path in cloudPath.iterdir():
         if path.name not in bigObjectSet:
-            print("{} is in cloud storage but not referenced by any metadata file".format(path.name))
+            print(
+                f"{path.name} is in cloud storage but not referenced by any metadata file"
+            )
 
 
     for path in cachePath.iterdir():
         if path.name not in bigObjectSet:
-            print("{} is in the cache but not referenced by any metadata file".format(path.name))
+            print(f"{path.name} is in the cache but not referenced by any metadata file")
 
 def main():
     parseArgs()
